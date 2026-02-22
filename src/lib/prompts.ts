@@ -1,5 +1,4 @@
 import type { ProcessRequest } from "./schema";
-import { MAX_CHANGES, MAX_LEARNING_ITEMS } from "./schema";
 
 const TONE_INSTRUCTIONS: Record<string, string> = {
   executive: "Use a direct, authoritative, executive tone. Be decisive and strategic.",
@@ -18,8 +17,6 @@ const REWRITE_INSTRUCTIONS: Record<string, string> = {
   medium: "Correct errors, reorganize sentences for better flow, remove redundancies. You may restructure paragraphs but preserve the overall meaning and key points.",
   strong: "Rewrite freely for maximum clarity and impact. You may completely restructure, but you MUST preserve the original meaning and all key information. Do not invent new content.",
 };
-
-// --- Call 1: fast, just the corrected/translated text ---
 
 export function buildProcessSystemPrompt(req: ProcessRequest): string {
   const isTranslation = req.mode === "translate_proofread";
@@ -82,7 +79,14 @@ ${customNote}
 - Keep the same Markdown structure the user used (if they used lists, keep lists; if plain paragraphs, keep paragraphs).
 
 ## Output format
-Return ONLY the corrected/translated text. No explanations, no JSON, no commentary. Just the final text in Markdown.`;
+Return ONLY a JSON object with exactly two keys:
+- "correctedText": the corrected/translated text in Markdown.
+- "explanation": a short paragraph (2-4 sentences) in the SAME language as the input text, summarizing the main corrections you made. Be specific about what you changed and why. If no corrections were needed, say so.
+
+Example:
+{"correctedText": "The corrected text here...", "explanation": "Summary of corrections..."}
+
+Return ONLY the JSON object. No markdown fences, no extra text before or after.`;
 }
 
 export function buildProcessUserPrompt(req: ProcessRequest): string {
@@ -95,63 +99,3 @@ export function buildProcessUserPrompt(req: ProcessRequest): string {
   return parts.join("\n");
 }
 
-// --- Call 2: explain changes + learning ---
-
-export function buildExplainSystemPrompt(req: Pick<ProcessRequest, "mode" | "targetLang" | "rewriteStrength">): string {
-  const isTranslation = req.mode === "translate_proofread";
-  const rewriteInstr = REWRITE_INSTRUCTIONS[req.rewriteStrength] || REWRITE_INSTRUCTIONS.none;
-
-  const translationNote = isTranslation
-    ? `The text will be translated to ${req.targetLang?.toUpperCase()}. Include items with category "translation" or "anglicism" where relevant.`
-    : "";
-
-  return `You are a linguistic analyst. You will receive a text to analyze.
-Identify all spelling, grammar, punctuation, style, clarity, concision, and tone issues.
-For each issue, show a short "before" snippet and the suggested "after" correction.
-
-Rewrite level context: ${rewriteInstr}
-${translationNote}
-
-## LANGUAGE RULE (MANDATORY)
-You MUST detect the language of the input text and write ALL "explanation", "rule", "title" values in THAT SAME language.
-- French input → French explanations. Example: "explanation": "Le participe passé s'accorde avec le sujet quand il est employé avec être."
-- English input → English explanations. Example: "explanation": "Use a comma before a coordinating conjunction joining two independent clauses."
-- German input → German explanations. Example: "explanation": "Das Verb steht im Nebensatz am Ende."
-NEVER write explanations in English if the input text is in French or German. This is the most important rule.
-
-You MUST return ONLY valid JSON (no markdown fences, no extra text). The JSON must conform to this exact schema:
-
-{
-  "changes": [
-    {
-      "id": "c1",
-      "category": "spelling|grammar|punctuation|style|clarity|concision|tone|translation|anglicism|formatting",
-      "before": "original snippet",
-      "after": "suggested correction",
-      "explanation": "(in the same language as the input text)",
-      "rule": "(in the same language as the input text, optional)",
-      "severity": "info|important"
-    }
-  ],
-  "learning": [
-    {
-      "id": "l1",
-      "title": "(in the same language as the input text)",
-      "explanation": "(in the same language as the input text)",
-      "exampleBefore": "optional example before",
-      "exampleAfter": "optional example after",
-      "category": "spelling|grammar|punctuation|style|clarity|concision|tone|translation|anglicism|formatting"
-    }
-  ]
-}
-
-## Constraints
-- "changes": maximum ${MAX_CHANGES} items. Focus on the most important ones.
-- "learning": maximum ${MAX_LEARNING_ITEMS} items. Pick the most useful recurring lessons.
-- Return ONLY the JSON object. No other text before or after.
-- REMINDER: all human-readable strings MUST be in the same language as the input text.`;
-}
-
-export function buildExplainUserPrompt(originalText: string): string {
-  return originalText;
-}

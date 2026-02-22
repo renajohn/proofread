@@ -25,46 +25,9 @@ export type ProcessRequest = {
   outputFormat: "markdown";
 };
 
-export type ChangeCategory =
-  | "spelling"
-  | "grammar"
-  | "punctuation"
-  | "style"
-  | "clarity"
-  | "concision"
-  | "tone"
-  | "translation"
-  | "anglicism"
-  | "formatting";
-
-export type ChangeItem = {
-  id: string;
-  category: ChangeCategory;
-  before: string;
-  after: string;
-  explanation: string;
-  rule?: string;
-  severity: "info" | "important";
-  location?: {
-    startChar?: number;
-    endChar?: number;
-    sentenceIndex?: number;
-  };
-};
-
-export type LearningItem = {
-  id: string;
-  title: string;
-  explanation: string;
-  exampleBefore?: string;
-  exampleAfter?: string;
-  category: ChangeCategory;
-};
-
 export type ProcessResponse = {
   outputMarkdown: string;
-  changes: ChangeItem[];
-  learning: LearningItem[];
+  explanation: string;
   meta: {
     detectedSourceLang?: Lang;
     targetLang?: Lang;
@@ -100,5 +63,3 @@ export const REWRITE_LABELS: Record<RewriteStrength, string> = {
 };
 
 export const INPUT_MAX_CHARS = 12000;
-export const MAX_CHANGES = 25;
-export const MAX_LEARNING_ITEMS = 5;

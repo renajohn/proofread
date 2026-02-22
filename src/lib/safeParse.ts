@@ -1,9 +1,6 @@
-import type { ChangeItem, LearningItem } from "./schema";
-
 type LLMOutput = {
-  outputMarkdown: string;
-  changes: ChangeItem[];
-  learning: LearningItem[];
+  correctedText: string;
+  explanation: string;
 };
 
 export function safeParseLLMJson(raw: string): LLMOutput & { parseWarning?: string } {
@@ -37,54 +34,17 @@ export function safeParseLLMJson(raw: string): LLMOutput & { parseWarning?: stri
     }
   }
 
-  // 4) Fallback: treat the whole response as markdown output
+  // 4) Fallback: treat the whole response as corrected text
   return {
-    outputMarkdown: raw.trim(),
-    changes: [],
-    learning: [],
-    parseWarning: "Impossible de parser la réponse structurée du LLM. Explications indisponibles.",
+    correctedText: raw.trim(),
+    explanation: "",
+    parseWarning: "Impossible de parser la réponse JSON du LLM. Explication indisponible.",
   };
 }
 
 function normalize(obj: Record<string, unknown>): LLMOutput {
   return {
-    outputMarkdown: typeof obj.outputMarkdown === "string" ? obj.outputMarkdown : "",
-    changes: Array.isArray(obj.changes) ? obj.changes.map(normalizeChange) : [],
-    learning: Array.isArray(obj.learning) ? obj.learning.map(normalizeLearning) : [],
+    correctedText: typeof obj.correctedText === "string" ? obj.correctedText : "",
+    explanation: typeof obj.explanation === "string" ? obj.explanation : "",
   };
-}
-
-function normalizeChange(item: Record<string, unknown>, index: number): ChangeItem {
-  return {
-    id: typeof item.id === "string" ? item.id : `c${index}`,
-    category: validateCategory(item.category) ?? "style",
-    before: String(item.before ?? ""),
-    after: String(item.after ?? ""),
-    explanation: String(item.explanation ?? ""),
-    rule: typeof item.rule === "string" ? item.rule : undefined,
-    severity: item.severity === "important" ? "important" : "info",
-  };
-}
-
-function normalizeLearning(item: Record<string, unknown>, index: number): LearningItem {
-  return {
-    id: typeof item.id === "string" ? item.id : `l${index}`,
-    title: String(item.title ?? ""),
-    explanation: String(item.explanation ?? ""),
-    exampleBefore: typeof item.exampleBefore === "string" ? item.exampleBefore : undefined,
-    exampleAfter: typeof item.exampleAfter === "string" ? item.exampleAfter : undefined,
-    category: validateCategory(item.category) ?? "style",
-  };
-}
-
-const VALID_CATEGORIES = new Set([
-  "spelling", "grammar", "punctuation", "style", "clarity",
-  "concision", "tone", "translation", "anglicism", "formatting",
-]);
-
-function validateCategory(val: unknown): ChangeItem["category"] | undefined {
-  if (typeof val === "string" && VALID_CATEGORIES.has(val)) {
-    return val as ChangeItem["category"];
-  }
-  return undefined;
 }

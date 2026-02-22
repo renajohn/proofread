@@ -1,18 +1,20 @@
 import express from "express";
 import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
 import type { ProcessRequest } from "../lib/schema.js";
 import { chatCompletion } from "../lib/llmClient.js";
 import {
   buildProcessSystemPrompt,
   buildProcessUserPrompt,
-  buildExplainSystemPrompt,
-  buildExplainUserPrompt,
 } from "../lib/prompts.js";
 import { safeParseLLMJson } from "../lib/safeParse.js";
-import { INPUT_MAX_CHARS, MAX_CHANGES, MAX_LEARNING_ITEMS } from "../lib/schema.js";
+import { INPUT_MAX_CHARS } from "../lib/schema.js";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
-const PORT = 3001;
+const PORT = Number(process.env.PORT) || 3001;
 
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
@@ -30,7 +32,6 @@ function validateInput(body: ProcessRequest): string | null {
   return null;
 }
 
-// Call 1: fast — just the corrected/translated text (no JSON overhead)
 app.post("/api/process", async (req, res) => {
   const body = req.body as ProcessRequest;
 
@@ -50,9 +51,11 @@ app.post("/api/process", async (req, res) => {
       { role: "user", content: userPrompt },
     ]);
     const latencyMs = Date.now() - startTime;
+    const parsed = safeParseLLMJson(result.content);
 
     res.json({
-      outputMarkdown: result.content.trim(),
+      outputMarkdown: parsed.correctedText,
+      explanation: parsed.explanation,
       meta: {
         rewriteStrength: body.rewriteStrength,
         tonePreset: body.tonePreset,
@@ -60,6 +63,7 @@ app.post("/api/process", async (req, res) => {
         model: result.model,
         latencyMs,
       },
+      ...(parsed.parseWarning ? { parseWarning: parsed.parseWarning } : {}),
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown LLM error";
@@ -67,42 +71,11 @@ app.post("/api/process", async (req, res) => {
   }
 });
 
-// Call 2: explain — changes + learning (parallel with call 1)
-app.post("/api/explain", async (req, res) => {
-  const body = req.body as {
-    inputText: string;
-    mode: ProcessRequest["mode"];
-    rewriteStrength: ProcessRequest["rewriteStrength"];
-    targetLang?: ProcessRequest["targetLang"];
-  };
-
-  if (!body.inputText || body.inputText.trim().length < 2) {
-    res.status(400).json({ error: "inputText is required" });
-    return;
-  }
-
-  const systemPrompt = buildExplainSystemPrompt(body);
-  const userPrompt = buildExplainUserPrompt(body.inputText);
-  const startTime = Date.now();
-
-  try {
-    const result = await chatCompletion([
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
-    ]);
-    const latencyMs = Date.now() - startTime;
-    const parsed = safeParseLLMJson(result.content);
-
-    res.json({
-      changes: parsed.changes.slice(0, MAX_CHANGES),
-      learning: parsed.learning.slice(0, MAX_LEARNING_ITEMS),
-      meta: { model: result.model, latencyMs },
-      ...(parsed.parseWarning ? { parseWarning: parsed.parseWarning } : {}),
-    });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown LLM error";
-    res.status(502).json({ error: `LLM error: ${message}` });
-  }
+// Serve Vite-built frontend in production
+const distPath = path.resolve(__dirname, "../../dist");
+app.use(express.static(distPath));
+app.get("*", (_req, res) => {
+  res.sendFile(path.join(distPath, "index.html"));
 });
 
 app.listen(PORT, () => {

@@ -1,4 +1,4 @@
-const LLM_BASE_URL = process.env.LLM_BASE_URL || "http://p-cloud.local:8001";
+const LLM_BASE_URL = process.env.LLM_BASE_URL || "http://p-cloud.local:8002";
 const LLM_TIMEOUT_MS = 120_000;
 
 type ChatMessage = {
