@@ -7,9 +7,9 @@ services:
     environment:
       - LLM_BASE_URL=http://p-cloud.local:8002
     labels:
-      homepage.name: Proofread
-      homepage.description: Correcteur et traducteur de texte assisté par IA
-      homepage.icon: https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@main/svg/libretranslate.svg
-      homepage.group: Apps
-      homepage.href: http://p-cloud.local:8052
-      com.centurylinklabs.watchtower.enable: "true"
+      - "com.centurylinklabs.watchtower.enable=true"
+      - homepage.group=Apps
+      - homepage.name=Proofread
+      - homepage.description=Correcteur et traducteur de texte assisté par IA
+      - homepage.href=http://p-cloud.local:8052
+      - homepage.icon=https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@main/svg/libretranslate.svg
