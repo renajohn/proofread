@@ -51,6 +51,7 @@ export default function App() {
   // Read clipboard on mount + whenever the tab regains focus
   useEffect(() => {
     function readClipboard() {
+      if (!navigator.clipboard?.readText) return;
       navigator.clipboard.readText().then((text) => {
         if (text.trim() && text.trim() !== dismissedClipRef.current?.trim()) {
           setClipboardText(text);
