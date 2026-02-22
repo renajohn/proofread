@@ -5,3 +5,4 @@ dist
 .env*
 *.tsbuildinfo
 npm-debug.log*
+.playwright-mcp/
