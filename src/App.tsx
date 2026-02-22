@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type {
   Mode,
   TonePreset,
@@ -8,6 +8,7 @@ import type {
 import Sidebar from "@/components/Sidebar";
 import EditorPanel from "@/components/EditorPanel";
 import OutputPanel from "@/components/OutputPanel";
+import ClipboardCallout from "@/components/ClipboardCallout";
 
 const STORAGE_KEY = "proofread-settings";
 
@@ -44,6 +45,33 @@ export default function App() {
   const [inputText, setInputText] = useState("");
   const [outputMarkdown, setOutputMarkdown] = useState("");
   const [explanation, setExplanation] = useState("");
+  const [clipboardText, setClipboardText] = useState<string | null>(null);
+  const dismissedClipRef = useRef<string | null>(null);
+
+  // Read clipboard on mount + whenever the tab regains focus
+  useEffect(() => {
+    function readClipboard() {
+      navigator.clipboard.readText().then((text) => {
+        if (text.trim() && text.trim() !== dismissedClipRef.current?.trim()) {
+          setClipboardText(text);
+        }
+      }).catch(() => {});
+    }
+
+    readClipboard();
+
+    function onVisibilityChange() {
+      if (document.visibilityState === "visible") readClipboard();
+    }
+
+    window.addEventListener("focus", readClipboard);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      window.removeEventListener("focus", readClipboard);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, []);
 
   // UI state
   const [loading, setLoading] = useState(false);
@@ -56,8 +84,9 @@ export default function App() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
   }, [mode, tonePreset, rewriteStrength, targetLang, customInstructions, emailMode]);
 
-  async function handleSubmit() {
-    if (!inputText.trim() || loading) return;
+  const handleSubmit = useCallback(async (overrideText?: string) => {
+    const text = overrideText ?? inputText;
+    if (!text.trim() || loading) return;
 
     setLoading(true);
     setError(null);
@@ -73,7 +102,7 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mode,
-          inputText,
+          inputText: text,
           tonePreset,
           customInstructions: customInstructions || undefined,
           rewriteStrength,
@@ -96,6 +125,14 @@ export default function App() {
     } finally {
       setLoading(false);
     }
+  }, [inputText, loading, mode, targetLang, tonePreset, customInstructions, rewriteStrength, emailMode]);
+
+  function handleClipboardCorrect() {
+    if (!clipboardText) return;
+    setInputText(clipboardText);
+    dismissedClipRef.current = clipboardText;
+    setClipboardText(null);
+    handleSubmit(clipboardText);
   }
 
   return (
@@ -105,6 +142,15 @@ export default function App() {
         <h1 className="text-lg font-semibold text-zinc-800 dark:text-zinc-200">
           Proofread
         </h1>
+
+        {clipboardText && clipboardText.trim() !== inputText.trim() && (
+          <ClipboardCallout
+            text={clipboardText}
+            loading={loading}
+            onCorrect={handleClipboardCorrect}
+            onDismiss={() => { dismissedClipRef.current = clipboardText; setClipboardText(null); }}
+          />
+        )}
 
         {/* Side by side on large screens, stacked on small */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
@@ -145,7 +191,7 @@ export default function App() {
           onCustomInstructionsChange={setCustomInstructions}
           emailMode={emailMode}
           onEmailModeChange={setEmailMode}
-          onSubmit={handleSubmit}
+          onSubmit={() => handleSubmit()}
           loading={loading}
         />
       </div>
