@@ -6,10 +6,21 @@ services:
       - "8052:3001"
     environment:
       - LLM_BASE_URL=http://p-cloud.local:8002
+    networks:
+      - web
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.preader.rule=Host(`preader.lab.crog.org`)"
+      - "traefik.http.routers.preader.entrypoints=websecure"
+      - "traefik.http.routers.preader.tls=true"
+      - "traefik.http.services.preader.loadbalancer.server.port=3001"
       - homepage.group=Apps
       - homepage.name=Proofread
       - homepage.description=Correcteur et traducteur de texte assisté par IA
-      - homepage.href=http://p-cloud.local:8052
+      - homepage.href=https://preader.lab.crog.org
       - homepage.icon=https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@main/svg/libretranslate.svg
+
+networks:
+  web:
+    external: true
