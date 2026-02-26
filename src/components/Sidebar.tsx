@@ -10,12 +10,14 @@ type SidebarProps = {
   targetLang: Lang;
   customInstructions: string;
   emailMode: boolean;
+  autoCopy: boolean;
   onModeChange: (v: Mode) => void;
   onToneChange: (v: TonePreset) => void;
   onRewriteChange: (v: RewriteStrength) => void;
   onTargetLangChange: (v: Lang) => void;
   onCustomInstructionsChange: (v: string) => void;
   onEmailModeChange: (v: boolean) => void;
+  onAutoCopyChange: (v: boolean) => void;
   onSubmit: () => void;
   loading: boolean;
 };
@@ -27,12 +29,14 @@ export default function Sidebar({
   targetLang,
   customInstructions,
   emailMode,
+  autoCopy,
   onModeChange,
   onToneChange,
   onRewriteChange,
   onTargetLangChange,
   onCustomInstructionsChange,
   onEmailModeChange,
+  onAutoCopyChange,
   onSubmit,
   loading,
 }: SidebarProps) {
@@ -132,6 +136,17 @@ export default function Sidebar({
           className="accent-blue-600"
         />
         Email (formules d&apos;usage)
+      </label>
+
+      {/* Auto-copy */}
+      <label className="flex items-center gap-2 cursor-pointer text-sm">
+        <input
+          type="checkbox"
+          checked={autoCopy}
+          onChange={(e) => onAutoCopyChange(e.target.checked)}
+          className="accent-blue-600"
+        />
+        Auto-copie
       </label>
 
       {/* Custom instructions */}

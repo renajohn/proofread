@@ -19,6 +19,7 @@ type PersistedSettings = {
   targetLang: Lang;
   customInstructions: string;
   emailMode: boolean;
+  autoCopy: boolean;
 };
 
 function loadSettings(): Partial<PersistedSettings> {
@@ -40,6 +41,7 @@ export default function App() {
   const [targetLang, setTargetLang] = useState<Lang>(saved.targetLang ?? "en");
   const [customInstructions, setCustomInstructions] = useState(saved.customInstructions ?? "");
   const [emailMode, setEmailMode] = useState(saved.emailMode ?? false);
+  const [autoCopy, setAutoCopy] = useState(saved.autoCopy ?? false);
 
   // Editor state
   const [inputText, setInputText] = useState("");
@@ -78,12 +80,13 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [latencyMs, setLatencyMs] = useState<number | null>(null);
+  const [autoCopied, setAutoCopied] = useState(false);
 
   // Persist sidebar settings to localStorage
   useEffect(() => {
-    const settings: PersistedSettings = { mode, tonePreset, rewriteStrength, targetLang, customInstructions, emailMode };
+    const settings: PersistedSettings = { mode, tonePreset, rewriteStrength, targetLang, customInstructions, emailMode, autoCopy };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-  }, [mode, tonePreset, rewriteStrength, targetLang, customInstructions, emailMode]);
+  }, [mode, tonePreset, rewriteStrength, targetLang, customInstructions, emailMode, autoCopy]);
 
   const handleSubmit = useCallback(async (overrideText?: string) => {
     const text = overrideText ?? inputText;
@@ -121,12 +124,21 @@ export default function App() {
       setOutputMarkdown(data.outputMarkdown);
       setExplanation(data.explanation ?? "");
       setLatencyMs(data.meta.latencyMs);
+
+      if (autoCopy && navigator.clipboard?.writeText) {
+        const bodyMatch = (data.outputMarkdown as string).match(/^Subject:\s*.+\n\n?/i);
+        const body = bodyMatch ? (data.outputMarkdown as string).slice(bodyMatch[0].length) : data.outputMarkdown;
+        navigator.clipboard.writeText(body).then(() => {
+          setAutoCopied(true);
+          setTimeout(() => setAutoCopied(false), 2000);
+        }).catch(() => {});
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur inconnue");
     } finally {
       setLoading(false);
     }
-  }, [inputText, loading, mode, targetLang, tonePreset, customInstructions, rewriteStrength, emailMode]);
+  }, [inputText, loading, mode, targetLang, tonePreset, customInstructions, rewriteStrength, emailMode, autoCopy]);
 
   function handleClipboardCorrect() {
     if (!clipboardText) return;
@@ -156,7 +168,7 @@ export default function App() {
         {/* Side by side on large screens, stacked on small */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
           <EditorPanel value={inputText} onChange={setInputText} />
-          <OutputPanel markdown={outputMarkdown} loading={loading} />
+          <OutputPanel markdown={outputMarkdown} loading={loading} autoCopied={autoCopied} />
         </div>
 
         {error && (
@@ -192,6 +204,8 @@ export default function App() {
           onCustomInstructionsChange={setCustomInstructions}
           emailMode={emailMode}
           onEmailModeChange={setEmailMode}
+          autoCopy={autoCopy}
+          onAutoCopyChange={setAutoCopy}
           onSubmit={() => handleSubmit()}
           loading={loading}
         />

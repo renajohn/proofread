@@ -3,6 +3,7 @@ import { useState } from "react";
 type OutputPanelProps = {
   markdown: string;
   loading: boolean;
+  autoCopied?: boolean;
 };
 
 function parseSubject(markdown: string): { subject: string | null; body: string } {
@@ -14,14 +15,21 @@ function parseSubject(markdown: string): { subject: string | null; body: string 
   };
 }
 
-export default function OutputPanel({ markdown, loading }: OutputPanelProps) {
+export default function OutputPanel({ markdown, loading, autoCopied }: OutputPanelProps) {
   const [copiedSubject, setCopiedSubject] = useState(false);
   const [copiedBody, setCopiedBody] = useState(false);
 
   const label = (
-    <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-      Résultat (Markdown)
-    </label>
+    <div className="flex items-center gap-2">
+      <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+        Résultat (Markdown)
+      </label>
+      {autoCopied && (
+        <span className="text-xs font-medium text-green-600 dark:text-green-400">
+          Copié !
+        </span>
+      )}
+    </div>
   );
 
   if (loading) {

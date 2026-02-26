@@ -1,19 +1,27 @@
 import type { ProcessRequest } from "./schema";
 
 const TONE_INSTRUCTIONS: Record<string, string> = {
-  executive: "Use a direct, authoritative, executive tone. Be decisive and strategic.",
-  neutral_pro: "Use a neutral, professional tone. Clear and balanced.",
-  diplomatic: "Use a diplomatic, tactful tone. Be considerate and measured.",
-  casual: "Use a casual, relaxed tone. Natural and approachable.",
-  friendly: "Use a warm, friendly tone. Personable and engaging.",
-  funny: "Use a light, witty tone. Inject humor where appropriate without undermining the message.",
-  very_concise: "Be extremely concise. Remove all filler. Every word must earn its place.",
-  very_clear: "Prioritize clarity and pedagogy. Explain concepts simply. Use short sentences.",
+  executive: `TONE: Executive / Authoritative.
+Write like a senior leader communicating a decision. Short, assertive sentences. No hedging ("I think", "maybe", "perhaps"). Use action verbs. Example: instead of "It might be a good idea to consider updating the policy", write "We are updating the policy effective immediately."`,
+  neutral_pro: `TONE: Neutral / Professional.
+Standard business tone. Clear, balanced, no strong personality. Avoid overly casual or overly formal language. This is the baseline — straightforward and polished.`,
+  diplomatic: `TONE: Diplomatic / Tactful.
+Soften direct statements. Use "we" instead of "you". Add cushioning phrases like "It may be worth considering…", "I'd suggest…", "One option could be…". Avoid blaming or commanding language. Example: instead of "You missed the deadline", write "It seems the deadline may have been overlooked — would it be possible to prioritize this?"`,
+  casual: `TONE: Casual / Relaxed.
+Write like you're talking to a colleague you know well. Use contractions (don't, it's, we'll). Shorter sentences. Drop unnecessary formality. Example: instead of "Please find attached the requested document", write "Here's the doc you asked for."`,
+  friendly: `TONE: Warm / Friendly.
+Be personable and enthusiastic. Use positive language, show interest. Add warmth: "Great question!", "Happy to help!", "Thanks so much for…". Example: instead of "The report is ready", write "Good news — the report is ready! Let me know if you have any questions."`,
+  funny: `TONE: Light / Witty.
+Inject subtle humor, wordplay, or a light touch where it fits. Don't force jokes — let the humor feel natural. Exaggerate slightly for effect when appropriate. Example: instead of "The meeting ran long", write "The meeting bravely soldiered on past the two-hour mark."`,
+  very_concise: `TONE: Ultra-concise.
+Strip everything to the bare minimum. Remove filler words, pleasantries, redundancies. Every word must earn its place. Prefer bullet points over paragraphs when possible. If it can be said in 5 words, don't use 15.`,
+  very_clear: `TONE: Clear / Pedagogical.
+Prioritize readability and understanding. Use short sentences. One idea per sentence. Explain any technical or ambiguous terms. Use concrete examples. Prefer active voice. Structure with clear logical flow.`,
 };
 
 const REWRITE_INSTRUCTIONS: Record<string, string> = {
-  none: "Make only minimal corrections (spelling, grammar, punctuation). Do NOT rewrite or restructure sentences. Preserve the original wording as much as possible. Only fix clear errors and make micro-improvements.",
-  light: "Correct errors and lightly clarify. You may shorten slightly or improve word choice, but keep the original structure and voice intact.",
+  none: "Make only minimal corrections (spelling, grammar, punctuation). Do NOT rewrite or restructure sentences. Preserve the original wording as much as possible. Only fix clear errors and make micro-improvements. Exception: you MUST still adapt word choice to match the requested tone.",
+  light: "Correct errors and lightly clarify. You may shorten slightly or improve word choice, but keep the original structure intact. Adapt vocabulary and phrasing to match the requested tone.",
   medium: "Correct errors, reorganize sentences for better flow, remove redundancies. You may restructure paragraphs but preserve the overall meaning and key points.",
   strong: "Rewrite freely for maximum clarity and impact. You may completely restructure, but you MUST preserve the original meaning and all key information. Do not invent new content.",
 };
@@ -61,8 +69,9 @@ Adding salutations and a subject line is NOT "inventing content" — it is requi
 ${isTranslation ? "Translate, proofread, and edit" : "Proofread and edit"} the user's text according to the instructions below.
 ${emailNote}
 
-## Tone
+## Tone (IMPORTANT — always apply, even at low rewrite levels)
 ${toneInstr}
+Even if the rewrite level is low, you MUST adjust word choice, greetings, and phrasing to match this tone. Tone changes are NOT considered rewriting — they are corrections.
 
 ## Rewrite level
 ${rewriteInstr}
